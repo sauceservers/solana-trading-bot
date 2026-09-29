@@ -1,10 +1,15 @@
 {
-  "name": "warp-solana-bot",
+  "name": "solana-multi-dex-bot",
   "author": "Filip Dundjer",
-  "homepage": "https://warp.id",
-  "version": "2.0.1",
+  "version": "3.0.0",
   "scripts": {
     "start": "ts-node index.ts",
+    "discover": "DISCOVERY_ONLY=true ts-node discover.ts",
+    "discover:graduate": "DISCOVERY_ONLY=true SELECTION_PROFILE=graduate ts-node discover.ts",
+    "discover:momentum": "DISCOVERY_ONLY=true SELECTION_PROFILE=momentum ts-node discover.ts",
+    "discover:social": "DISCOVERY_ONLY=true SELECTION_PROFILE=social ts-node discover.ts",
+    "discover:scalp": "DISCOVERY_ONLY=true SELECTION_PROFILE=scalp ts-node discover.ts",
+    "discover:early": "DISCOVERY_ONLY=true SELECTION_PROFILE=early ts-node discover.ts",
     "tsc": "tsc --noEmit"
   },
   "dependencies": {
@@ -20,8 +25,7 @@
     "bs58": "^5.0.0",
     "dotenv": "^16.4.1",
     "ed25519-hd-key": "^1.3.0",
-    "i": "^0.3.7",
-    "npm": "^10.5.2",
+    "outsmart": "^2.0.0-alpha.16",
     "pino": "^8.18.0",
     "pino-pretty": "^10.3.1",
     "pino-std-serializers": "^6.2.2"
