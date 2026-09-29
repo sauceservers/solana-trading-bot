@@ -1,6 +1,37 @@
-# Solana Multi-DEX Trading Bot
+# Solana Multi-DEX Meme Trading Bot
 
-Automated Solana trading bot built on **[Outsmart](https://github.com/outsmartchad/outsmart-cli)** DEX adapters. It streams new pools / migrations and can buy & sell across major venues — not just legacy Raydium AMM v4.
+Automated Solana trading bot built on **[Outsmart](https://github.com/outsmartchad/outsmart-cli)** DEX adapters.
+
+The hard problem for meme coins is not only entry/exit — it is **which coins to buy**. This bot adds a **discovery + selection** layer that ranks live Pump.fun and DexScreener candidates under named profiles before any trade is sent.
+
+## What to buy (discovery)
+
+```bash
+npm run discover                 # balanced profile
+npm run discover:graduate        # near Pump graduation
+npm run discover:momentum        # volume + buy pressure
+npm run discover:social          # socials + early narrative
+npm run discover:scalp           # hot m5 flow
+npm run discover:early           # low mcap pre-crowd (higher risk)
+```
+
+No wallet needed for explore. Each run pulls candidates and prints a ranked board (`PICK` vs `watch`) with score, mcap, bonding %, and reasons.
+
+| Profile | Edge it hunts |
+| --- | --- |
+| `balanced` | Mid-cap + liquidity + ≥1 social |
+| `graduate` | Pump bonding ~55–99% before migration |
+| `momentum` | Strong buy/sell ratio + volume velocity |
+| `social` | Twitter/TG/site + replies, early mcap |
+| `scalp` | Fresh boosts / m5 volume spikes |
+| `early` | Low mcap bonding with socials |
+
+Tune gates/weights in `discovery/profiles.ts`. Env:
+
+- `SELECTION_PROFILE` — which profile
+- `DISCOVERY_MODE=explore|trade` — rank only vs allow buys from picks
+- `SCORE_STREAM_SIGNALS=true` — also filter websocket new-pools through the same scorer
+- `AUTO_BUY=true` + `DISCOVERY_MODE=trade` — actually buy selected coins
 
 ## Supported markets (via Outsmart)
 
@@ -8,64 +39,39 @@ Automated Solana trading bot built on **[Outsmart](https://github.com/outsmartch
 | --- | --- |
 | `pumpfun-amm` | PumpSwap AMM (migrated Pump tokens) |
 | `pumpfun` | Pump.fun bonding curve |
-| `raydium-amm-v4` | Raydium AMM v4 |
-| `raydium-cpmm` | Raydium CPMM |
-| `raydium-clmm` | Raydium CLMM |
-| `raydium-launchlab` | Raydium LaunchLab (e.g. Stonk-style launches) |
-| `meteora-damm-v1` / `meteora-damm-v2` / `meteora-dlmm` / `meteora-dbc` | Meteora |
-| `orca`, `byreal-clmm`, `pancakeswap-clmm`, `fusion-amm`, `futarchy-amm` | Other AMMs |
-| `jupiter-ultra`, `dflow` | Aggregators (good sell fallback) |
+| `raydium-amm-v4` / `raydium-cpmm` / `raydium-clmm` / `raydium-launchlab` | Raydium |
+| `meteora-*` | Meteora |
+| `jupiter-ultra`, `dflow` | Aggregators (sell fallback) |
 
-**Warp execution / tipping is removed.** Tips are optional and explicit (`TIP_SOL`).
+**Warp execution / tipping is removed.** Tips are optional (`TIP_SOL`).
 
 ## Setup
 
-1. Create a funded Solana wallet (and wrap SOL → WSOL if you buy with WSOL quote paths that need it).
-2. Copy `.env.copy` → `.env` and fill `PRIVATE_KEY`, RPC URLs.
+1. Create a funded Solana wallet (only needed for live trading).
+2. Copy `.env.copy` → `.env`.
 3. Install: `npm install --legacy-peer-deps`
-4. Typecheck: `npm run tsc`
-5. Run: `npm run start`
+4. Explore picks: `npm run discover`
+5. Typecheck: `npm run tsc`
+6. Trade (after picks look sane): set `PRIVATE_KEY`, `AUTO_BUY=true`, `DISCOVERY_MODE=trade`, then `npm run start`
 
-You should see Outsmart adapters register, stream presets start, then `New pool detected` / buy attempts as liquidity appears.
+## Architecture
 
-## Configuration
-
-### Core
-
-- `PRIVATE_KEY` — base58 / JSON array / mnemonic (see `helpers/wallet.ts`)
-- `RPC_ENDPOINT` / `RPC_WEBSOCKET_ENDPOINT` — HTTP + WS RPC
-- `MAINNET_ENDPOINT` — used by Outsmart (defaults to `RPC_ENDPOINT`)
-- `ENABLED_DEXES` — comma-separated Outsmart adapter names
-- `STREAM_PRESETS` — `new-pools`, `pumpswap`, `raydium`, `meteora`, `pumpfun-bonding`, …
-- `AUTO_BUY` / `AUTO_SELL` — enable entries / exits
-- `QUOTE_AMOUNT` — SOL to spend per buy
-- `BUY_SLIPPAGE` / `SELL_SLIPPAGE` — percent (converted to bps for Outsmart)
-- `TIP_SOL` — optional MEV tip for landing (default `0`)
-- `ONE_TOKEN_AT_A_TIME` — serialize entries
-
-### Streams → buys
-
-The bot starts parallel Outsmart `WsEventStream` presets. On `NewPool` or `BondingComplete` it maps the stream DEX label to an adapter (e.g. stream `pumpswap` → `pumpfun-amm`) and calls `adapter.buy({ poolAddress, amountSol })`.
-
-For migrated Pump coins, prefer **`pumpfun-amm`**. For modern Raydium liquidity prefer **`raydium-cpmm`** / **`raydium-launchlab`**. Legacy OpenBook pools still work via **`raydium-amm-v4`**.
-
-## Programmatic shape
-
-```ts
-import { getDexAdapter, registerAllAdapters } from 'outsmart';
-
-await registerAllAdapters();
-await getDexAdapter('pumpfun-amm').buy({ poolAddress, amountSol: 0.1 });
-await getDexAdapter('raydium-cpmm').buy({ poolAddress, amountSol: 0.1 });
+```
+Pump.fun API ─┐
+DexScreener  ─┼─► DiscoveryPipeline ─► score/rank ─► PICK board
+Outsmart WS  ─┘         │
+                        ▼ (DISCOVERY_MODE=trade + AUTO_BUY)
+                   Bot.onDiscoveryPick / scored stream
+                        ▼
+                   OutsmartTrader buy/sell
 ```
 
 ## Security notes
 
 - Never commit `.env`.
-- Do not re-enable Warp; it sent signed txs + tips to a third-party fee wallet.
-- Outsmart tips are opt-in via `TIP_SOL` / Outsmart landing env vars.
-- Trading is risky. Start with tiny `QUOTE_AMOUNT` and `AUTO_SELL=false` until you trust the path.
+- Do not re-enable Warp.
+- Trading memes is high risk. Start with `DISCOVERY_MODE=explore`, tiny `QUOTE_AMOUNT`, and `AUTO_BUY=false`.
 
 ## Disclaimer
 
-Provided as-is for learning and research. You are solely responsible for funds and compliance.
+Provided as-is for learning and research. You are solely responsible for funds and compliance. Past-looking scores do not guarantee profit.

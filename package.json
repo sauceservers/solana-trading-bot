@@ -4,6 +4,12 @@
   "version": "3.0.0",
   "scripts": {
     "start": "ts-node index.ts",
+    "discover": "DISCOVERY_ONLY=true ts-node discover.ts",
+    "discover:graduate": "DISCOVERY_ONLY=true SELECTION_PROFILE=graduate ts-node discover.ts",
+    "discover:momentum": "DISCOVERY_ONLY=true SELECTION_PROFILE=momentum ts-node discover.ts",
+    "discover:social": "DISCOVERY_ONLY=true SELECTION_PROFILE=social ts-node discover.ts",
+    "discover:scalp": "DISCOVERY_ONLY=true SELECTION_PROFILE=scalp ts-node discover.ts",
+    "discover:early": "DISCOVERY_ONLY=true SELECTION_PROFILE=early ts-node discover.ts",
     "tsc": "tsc --noEmit"
   },
   "dependencies": {
