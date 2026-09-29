@@ -33,8 +33,10 @@ You should see Outsmart adapters register, stream presets start, then `New pool 
 ### Core
 
 - `PRIVATE_KEY` — base58 / JSON array / mnemonic (see `helpers/wallet.ts`)
-- `RPC_ENDPOINT` / `RPC_WEBSOCKET_ENDPOINT` — HTTP + WS RPC
-- `MAINNET_ENDPOINT` — used by Outsmart (defaults to `RPC_ENDPOINT`)
+- `RPC_ENDPOINT` / `RPC_WEBSOCKET_ENDPOINT` — HTTP + WS RPC (fallback / single-key mode)
+- `MAINNET_ENDPOINT` — used by Outsmart (defaults to `RPC_ENDPOINT`; overridden by local proxy when pooling)
+- `RPC_KEYS_FILE` — gitignored file (e.g. `rpc-keys.local.txt`) with one Helius API key or HTTPS URL per line. With 2+ keys the bot spreads HTTP via a local round-robin proxy and assigns each stream preset its own WS key.
+- `RPC_PROXY_PORT` — local load-balancer port (default `18789`)
 - `ENABLED_DEXES` — comma-separated Outsmart adapter names
 - `STREAM_PRESETS` — `new-pools`, `pumpswap`, `raydium`, `meteora`, `pumpfun-bonding`, …
 - `AUTO_BUY` / `AUTO_SELL` — enable entries / exits

@@ -1,9 +1,9 @@
 import { Logger } from 'pino';
 import dotenv from 'dotenv';
 import { Commitment } from '@solana/web3.js';
-import { SubscriptionPreset } from 'outsmart';
+import type { SubscriptionPreset } from 'outsmart';
 import { logger } from './logger';
-import { OutsmartDex } from '../venues/types';
+import type { OutsmartDex } from '../venues/types';
 
 dotenv.config();
 
@@ -32,6 +32,10 @@ export const NETWORK = 'mainnet-beta';
 export const COMMITMENT_LEVEL: Commitment = retrieveEnvVariable('COMMITMENT_LEVEL', logger) as Commitment;
 export const RPC_ENDPOINT = retrieveEnvVariable('RPC_ENDPOINT', logger);
 export const RPC_WEBSOCKET_ENDPOINT = retrieveEnvVariable('RPC_WEBSOCKET_ENDPOINT', logger);
+
+// Multi-key load spreading (optional). Prefer RPC_KEYS_FILE with one key/URL per line.
+export const RPC_KEYS_FILE = (process.env.RPC_KEYS_FILE || '').trim();
+export const RPC_PROXY_PORT = Number(process.env.RPC_PROXY_PORT || '18789');
 
 // Outsmart reads MAINNET_ENDPOINT / PRIVATE_KEY from process.env
 process.env.PRIVATE_KEY = PRIVATE_KEY;

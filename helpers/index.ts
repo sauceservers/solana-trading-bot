@@ -4,4 +4,6 @@ export * from './logger';
 export * from './constants';
 export * from './token';
 export * from './wallet';
-export * from './promises'
+export * from './promises';
+export * from './rpc-pool';
+export * from './rpc-proxy';

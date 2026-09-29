@@ -1,10 +1,15 @@
 import { BondingCompleteEvent, NewPoolEvent, SubscriptionPreset, WsEventStream } from 'outsmart';
 import { logger } from '../helpers';
+import { RpcEndpoint, RpcPool } from '../helpers/rpc-pool';
 import { STREAM_DEX_TO_ADAPTER, TradeSignal } from './types';
 
 export interface StreamWatcherConfig {
+  /** Shared HTTP RPC (usually the local load-balancer proxy). */
   rpcUrl: string;
+  /** Fallback single WS if no pool is provided. */
   wsUrl?: string;
+  /** Multi-key pool — each preset gets a sticky dedicated WS key. */
+  rpcPool?: RpcPool;
   /** Which Outsmart stream presets to run in parallel */
   presets: SubscriptionPreset[];
   onSignal: (signal: TradeSignal) => void;
@@ -13,6 +18,9 @@ export interface StreamWatcherConfig {
 /**
  * Watches multiple Outsmart WS presets for new pools / bonding completions.
  * Maps stream DEX labels onto Outsmart adapter names used for buys.
+ *
+ * Load spreading: HTTP (getTransaction) goes through `rpcUrl` (proxy/pool).
+ * Each preset uses a different upstream key for its WebSocket subscription.
  */
 export class StreamWatcher {
   private streams: WsEventStream[] = [];
@@ -20,10 +28,13 @@ export class StreamWatcher {
   constructor(private readonly config: StreamWatcherConfig) {}
 
   async start() {
-    for (const preset of this.config.presets) {
+    for (let i = 0; i < this.config.presets.length; i++) {
+      const preset = this.config.presets[i];
+      const assigned = this.assignEndpoints(i);
+
       const stream = new WsEventStream({
-        rpcUrl: this.config.rpcUrl,
-        wsUrl: this.config.wsUrl,
+        rpcUrl: assigned.http,
+        wsUrl: assigned.ws,
         logLevel: 'silent',
       });
 
@@ -36,7 +47,7 @@ export class StreamWatcher {
       try {
         await stream.start(preset);
         this.streams.push(stream);
-        logger.info({ preset }, 'Outsmart stream started');
+        logger.info({ preset, ws: assigned.label, http: this.config.rpcUrl }, 'Outsmart stream started');
       } catch (error) {
         logger.error({ preset, error }, 'Failed to start Outsmart stream preset');
       }
@@ -46,6 +57,24 @@ export class StreamWatcher {
   async stop() {
     await Promise.all(this.streams.map((s) => s.stop()));
     this.streams = [];
+  }
+
+  private assignEndpoints(index: number): RpcEndpoint {
+    if (this.config.rpcPool && this.config.rpcPool.size > 0) {
+      const sticky = this.config.rpcPool.sticky(index);
+      // HTTP via shared proxy/load-balancer; WS sticky per preset key
+      return {
+        http: this.config.rpcUrl,
+        ws: sticky.ws,
+        label: sticky.label,
+      };
+    }
+
+    return {
+      http: this.config.rpcUrl,
+      ws: this.config.wsUrl || this.config.rpcUrl.replace(/^http/, 'ws'),
+      label: 'single',
+    };
   }
 
   private handleNewPool(event: NewPoolEvent) {

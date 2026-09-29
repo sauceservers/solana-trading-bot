@@ -79,6 +79,11 @@ web_modules/
 .env.production.local
 .env.local
 
+# Local RPC key pools (never commit API keys)
+rpc-keys.local.txt
+rpc-keys*.local.txt
+*.keys.local.txt
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache
