@@ -1,0 +1,4 @@
+# Copy to rpc-keys.local.txt (gitignored) and add one key or HTTPS URL per line.
+# Example:
+# 86056dc1-feb5-492f-a3fd-cac5f4fde825
+# https://mainnet.helius-rpc.com/?api-key=YOUR_KEY_HERE

@@ -34,16 +34,17 @@ export class MutableFilter implements Filter {
       }
 
       const deserialize = this.metadataSerializer.deserialize(metadataAccount.data);
-      const mutable = !this.checkMutable || deserialize[0].isMutable;
-      const hasSocials = !this.checkSocials || (await this.hasSocials(deserialize[0]));
-      const ok = !mutable && hasSocials;
+      const isMutable = deserialize[0].isMutable;
+      const mutableOk = !this.checkMutable || !isMutable;
+      const socialsOk = !this.checkSocials || (await this.hasSocials(deserialize[0]));
+      const ok = mutableOk && socialsOk;
       const message: string[] = [];
 
-      if (mutable) {
+      if (!mutableOk) {
         message.push('metadata can be changed');
       }
 
-      if (!hasSocials) {
+      if (!socialsOk) {
         message.push('has no socials');
       }
 
@@ -59,8 +60,26 @@ export class MutableFilter implements Filter {
   }
 
   private async hasSocials(metadata: MetadataAccountData) {
-    const response = await fetch(metadata.uri);
-    const data = await response.json();
-    return Object.values(data?.extensions ?? {}).some((value: any) => value !== null && value.length > 0);
+    const uri = (metadata.uri || '').trim();
+    if (!uri.startsWith('https://') && !uri.startsWith('http://')) {
+      return false;
+    }
+
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 3_000);
+    try {
+      const response = await fetch(uri, { signal: controller.signal, redirect: 'follow' });
+      if (!response.ok) {
+        return false;
+      }
+      const data = (await response.json()) as { extensions?: Record<string, unknown> };
+      return Object.values(data?.extensions ?? {}).some(
+        (value) => value !== null && value !== undefined && String(value).length > 0,
+      );
+    } catch {
+      return false;
+    } finally {
+      clearTimeout(timer);
+    }
   }
 }
