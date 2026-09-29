@@ -55,4 +55,12 @@ export interface OpenPosition {
   mint: string;
   boughtAt: number;
   buySignature?: string;
+  /** SOL spent at entry (paper + live when known) */
+  entrySol?: number;
+  /** Raw token amount held (for mark-to-market / paper sells) */
+  tokenAmount?: number;
+  /** How entry size was priced: jupiter | synthetic | live | estimate */
+  pricing?: 'jupiter' | 'synthetic' | 'live' | 'estimate';
+  journalPositionId?: number;
+  journalSignalId?: number;
 }

@@ -84,6 +84,11 @@ rpc-keys.local.txt
 rpc-keys*.local.txt
 *.keys.local.txt
 
+# Trade journal / local data
+data/
+*.sqlite
+*.sqlite-*
+
 # parcel-bundler cache (https://parceljs.org/)
 .cache
 .parcel-cache

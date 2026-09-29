@@ -37,6 +37,10 @@ export const RPC_WEBSOCKET_ENDPOINT = retrieveEnvVariable('RPC_WEBSOCKET_ENDPOIN
 export const RPC_KEYS_FILE = (process.env.RPC_KEYS_FILE || '').trim();
 export const RPC_PROXY_PORT = Number(process.env.RPC_PROXY_PORT || '18789');
 
+// Paper trading + trade journal (SQLite via node:sqlite)
+export const PAPER_TRADE = retrieveBool('PAPER_TRADE', false);
+export const TRADE_DB_PATH = (process.env.TRADE_DB_PATH || './data/trades.sqlite').trim();
+
 // Outsmart reads MAINNET_ENDPOINT / PRIVATE_KEY from process.env
 process.env.PRIVATE_KEY = PRIVATE_KEY;
 process.env.MAINNET_ENDPOINT = process.env.MAINNET_ENDPOINT || RPC_ENDPOINT;

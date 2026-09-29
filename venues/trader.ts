@@ -1,6 +1,9 @@
 import { getDexAdapter, listDexAdapters, registerAllAdapters, SwapResult, WSOL_MINT } from 'outsmart';
 import { logger } from '../helpers';
+import { jupiterQuote } from '../helpers/jupiter-quote';
+import { TradeJournal } from '../db/trade-journal';
 import { OpenPosition, OutsmartDex, TradeSignal } from './types';
+import { Trader } from './trader-kinds';
 
 export interface TraderConfig {
   enabledDexes: Set<OutsmartDex>;
@@ -17,11 +20,14 @@ export interface TraderConfig {
  * Thin wrapper around Outsmart DEX adapters for multi-market buy/sell.
  * Covers PumpSwap, Raydium AMM/CPMM/CLMM/LaunchLab, Meteora, etc.
  */
-export class OutsmartTrader {
+export class OutsmartTrader implements Trader {
   private ready = false;
   private readonly positions = new Map<string, OpenPosition>();
 
-  constructor(private readonly config: TraderConfig) {}
+  constructor(
+    private readonly config: TraderConfig,
+    private readonly journal?: TradeJournal,
+  ) {}
 
   async init() {
     if (this.ready) {
@@ -41,7 +47,7 @@ export class OutsmartTrader {
     return [...this.positions.values()];
   }
 
-  async buy(signal: TradeSignal): Promise<SwapResult | null> {
+  async buy(signal: TradeSignal, signalId?: number | null): Promise<SwapResult | null> {
     await this.init();
 
     if (!this.isEnabled(signal.dex)) {
@@ -81,12 +87,45 @@ export class OutsmartTrader {
 
     if (result.confirmed) {
       const resolvedMint = mint || result.amountOutToken || signal.pool;
+      let positionId: number | undefined;
+      if (this.journal) {
+        positionId = this.journal.openPosition({
+          signalId,
+          mode: 'live',
+          dex: signal.dex,
+          pool: signal.pool,
+          mint: resolvedMint,
+          entrySol: this.config.amountSol,
+          tokenAmount: result.amountOut,
+          pricing: 'live',
+        });
+        this.journal.recordFill({
+          signalId,
+          positionId,
+          mode: 'live',
+          dex: signal.dex,
+          pool: signal.pool,
+          mint: resolvedMint,
+          side: 'buy',
+          status: 'confirmed',
+          amountInSol: result.amountIn ?? this.config.amountSol,
+          amountOutTokens: result.amountOut,
+          signature: result.txSignature,
+          pricing: 'live',
+        });
+      }
+
       this.positions.set(key, {
         dex: signal.dex,
         pool: signal.pool,
         mint: resolvedMint,
         boughtAt: Date.now(),
         buySignature: result.txSignature,
+        entrySol: this.config.amountSol,
+        tokenAmount: result.amountOut,
+        pricing: 'live',
+        journalPositionId: positionId,
+        journalSignalId: signalId ?? undefined,
       });
       logger.info(
         {
@@ -99,13 +138,29 @@ export class OutsmartTrader {
         'Buy confirmed',
       );
     } else {
+      this.journal?.recordFill({
+        signalId,
+        mode: 'live',
+        dex: signal.dex,
+        pool: signal.pool,
+        mint: mint || signal.pool,
+        side: 'buy',
+        status: 'failed',
+        amountInSol: this.config.amountSol,
+        signature: result.txSignature,
+        pricing: 'live',
+      });
       logger.warn({ dex: signal.dex, pool: signal.pool, signature: result.txSignature }, 'Buy not confirmed');
     }
 
     return result;
   }
 
-  async sell(position: OpenPosition, percentage = 100): Promise<SwapResult | null> {
+  async sell(
+    position: OpenPosition,
+    percentage = 100,
+    opts?: { exitReason?: string; signalId?: number | null },
+  ): Promise<SwapResult | null> {
     await this.init();
     const adapter = getDexAdapter(position.dex);
     if (!adapter.capabilities.canSell) {
@@ -127,9 +182,47 @@ export class OutsmartTrader {
       },
     });
 
+    const entrySol = position.entrySol ?? this.config.amountSol;
+    const exitSol = result.amountOut;
+    const holdMs = Date.now() - position.boughtAt;
+    const exitReason = opts?.exitReason || 'manual';
+
     if (result.confirmed && percentage >= 100) {
       this.positions.delete(`${position.dex}:${position.pool}`);
+      if (this.journal && position.journalPositionId != null && exitSol != null) {
+        const pnlSol = exitSol - entrySol;
+        const pnlPct = entrySol > 0 ? (pnlSol / entrySol) * 100 : 0;
+        this.journal.closePosition({
+          positionId: position.journalPositionId,
+          exitSol,
+          pnlSol,
+          pnlPct,
+          exitReason,
+        });
+      }
     }
+
+    this.journal?.recordFill({
+      signalId: opts?.signalId ?? position.journalSignalId ?? null,
+      positionId: position.journalPositionId ?? null,
+      mode: 'live',
+      dex: position.dex,
+      pool: position.pool,
+      mint: position.mint,
+      side: 'sell',
+      status: result.confirmed ? 'confirmed' : 'failed',
+      amountInSol: entrySol * (percentage / 100),
+      amountOutSol: exitSol,
+      signature: result.txSignature,
+      pricing: 'live',
+      pnlSol: exitSol != null ? exitSol - entrySol * (percentage / 100) : null,
+      pnlPct:
+        exitSol != null && entrySol > 0
+          ? ((exitSol - entrySol * (percentage / 100)) / (entrySol * (percentage / 100))) * 100
+          : null,
+      holdMs,
+      exitReason,
+    });
 
     logger.info(
       {
@@ -160,6 +253,19 @@ export class OutsmartTrader {
         tipSol: this.config.tipSol,
       },
     });
+  }
+
+  async markPositionSol(position: OpenPosition): Promise<number | null> {
+    if (!position.tokenAmount) {
+      return null;
+    }
+    const quote = await jupiterQuote({
+      inputMint: position.mint,
+      outputMint: this.config.quoteMint || WSOL_MINT,
+      amountRaw: Math.floor(position.tokenAmount),
+      slippageBps: this.config.sellSlippageBps,
+    });
+    return quote ? quote.outAmount / 1e9 : null;
   }
 
   async findPool(dex: OutsmartDex, tokenMint: string, quoteMint = this.config.quoteMint) {

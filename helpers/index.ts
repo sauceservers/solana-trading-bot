@@ -7,3 +7,4 @@ export * from './wallet';
 export * from './promises';
 export * from './rpc-pool';
 export * from './rpc-proxy';
+export * from './jupiter-quote';

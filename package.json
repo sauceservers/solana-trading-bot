@@ -4,6 +4,9 @@
   "version": "3.0.0",
   "scripts": {
     "start": "ts-node index.ts",
+    "paper": "PAPER_TRADE=true ts-node index.ts",
+    "stats": "ts-node scripts/trade-stats.ts",
+    "smoke:paper": "ts-node scripts/smoke-paper.ts",
     "tsc": "tsc --noEmit"
   },
   "dependencies": {

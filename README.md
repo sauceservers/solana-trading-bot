@@ -24,7 +24,9 @@ Automated Solana trading bot built on **[Outsmart](https://github.com/outsmartch
 2. Copy `.env.copy` → `.env` and fill `PRIVATE_KEY`, RPC URLs.
 3. Install: `npm install --legacy-peer-deps`
 4. Typecheck: `npm run tsc`
-5. Run: `npm run start`
+5. Paper trade (recommended first): `npm run paper`
+6. Live: `npm run start`
+7. Stats from the journal: `npm run stats`
 
 You should see Outsmart adapters register, stream presets start, then `New pool detected` / buy attempts as liquidity appears.
 
@@ -44,6 +46,21 @@ You should see Outsmart adapters register, stream presets start, then `New pool 
 - `BUY_SLIPPAGE` / `SELL_SLIPPAGE` — percent (converted to bps for Outsmart)
 - `TIP_SOL` — optional MEV tip for landing (default `0`)
 - `ONE_TOKEN_AT_A_TIME` — serialize entries
+- `PAPER_TRADE` — `true` simulates fills (no chain txs); still streams live pools
+- `TRADE_DB_PATH` — SQLite journal path (default `./data/trades.sqlite`)
+- `TAKE_PROFIT` / `STOP_LOSS` — percent exits while holding (`AUTO_SELL=true`)
+- `PRICE_CHECK_DURATION` — max hold ms; `PRICE_CHECK_INTERVAL` — mark poll ms
+
+### Paper trading + trade DB
+
+With `PAPER_TRADE=true` the bot:
+
+1. Still listens to live `NewPool` / `BondingComplete` streams
+2. Simulates buys/sells (Jupiter quote when a route exists, else tagged `synthetic`)
+3. Writes every signal, fill, open/closed position, and PnL into SQLite
+4. Exits on take-profit, stop-loss, or max hold
+
+Use `npm run stats` to inspect win rate, PnL by DEX, and exit reasons — the dataset for improving the algo. Live mode (`PAPER_TRADE=false`) records the same tables with `mode=live`.
 
 ### Streams → buys
 
