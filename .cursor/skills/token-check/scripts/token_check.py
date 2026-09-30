@@ -226,11 +226,18 @@ def solana_report(addr, flags, full):
     fee = r.get("transferFee") or {}
     print("== CONTRACT ==")
     prog = "Token-2022" if r["tokenProgram"].startswith("Tokenz") else "SPL"
-    print(f"program {prog}  supply {sup:,.0f}  mintAuth {r.get('mintAuthority')}  freezeAuth {r.get('freezeAuthority')}  metadata mutable={meta.get('mutable')}")
+    # RugCheck occasionally returns an authority as an account-info object instead of a pubkey.
+    mint_auth = r.get("mintAuthority")
+    freeze_auth = r.get("freezeAuthority")
+    if isinstance(mint_auth, dict):
+        mint_auth = "set (unparsed)"
+    if isinstance(freeze_auth, dict):
+        freeze_auth = "set (unparsed)"
+    print(f"program {prog}  supply {sup:,.0f}  mintAuth {mint_auth}  freezeAuth {freeze_auth}  metadata mutable={meta.get('mutable')}")
     print(f"launchpad {(r.get('launchpad') or {}).get('name')}  deployPlatform {r.get('deployPlatform')}  creator {r.get('creator')}  creatorBal {r.get('creatorBalance', 0)/10**dec:,.0f}")
-    if r.get("mintAuthority"):
+    if mint_auth:
         flags.append(("RED", "mint authority still set"))
-    if r.get("freezeAuthority"):
+    if freeze_auth:
         flags.append(("RED", "freeze authority still set"))
     tf = ext.get("transferFeeConfig") if isinstance(ext, dict) else None
     if tf:
