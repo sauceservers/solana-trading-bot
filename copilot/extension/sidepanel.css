@@ -93,4 +93,5 @@ pre {
 .witem { display: grid; grid-template-columns: 1fr auto auto; gap: 6px; align-items: center; padding: 5px 0; border-top: 1px solid var(--line); }
 .witem .sub { color: var(--muted); font-size: 10.5px; }
 .witem .near { color: #fcd34d; }
+.witem .hit { color: #fca5a5; font-weight: 600; }
 footer { margin-top: 10px; }

@@ -261,10 +261,18 @@ async function refreshWatch() {
     $("watchitems").innerHTML = items.map((it) => {
       const dist = it.stop_mcap && it.mcap ? (100 * (it.mcap / it.stop_mcap - 1)).toFixed(0) : null;
       const ho = it.hands_off_until ? Math.max(0, (it.hands_off_until * 1000 - Date.now()) / 3.6e6) : null;
-      const sub = it.book === "THESIS"
-        ? `thesis · hands off ${ho != null ? ho.toFixed(1) + "h left" : ""}`
-        : `stop ${fmtM(it.stop_mcap)} (${dist}% away) · target ${fmtM(it.target_mcap)}`;
-      return `<div class="witem"><div><div><b>${it.name || it.ca.slice(0, 8)}</b> ${fmtM(it.mcap)}</div><div class="sub ${dist != null && dist < 8 ? "near" : ""}">${sub}</div></div>
+      let sub;
+      if (it.book === "THESIS") {
+        sub = it.hands_off_fired ? "thesis · hands-off period over: run Rug-or-dip, then decide" : `thesis · hands off ${ho != null ? ho.toFixed(1) + "h left" : ""}`;
+      } else if (it.stop_fired) {
+        sub = `STOP HIT ${fmtM(it.stop_mcap)} — if you still hold, that is a decision you already made not to make`;
+      } else if (it.target_fired) {
+        sub = `TARGET HIT ${fmtM(it.target_mcap)} — principal out? stop ${fmtM(it.stop_mcap)} (${dist}% away)`;
+      } else {
+        sub = `stop ${fmtM(it.stop_mcap)} (${dist}% away) · target ${fmtM(it.target_mcap)}`;
+      }
+      const cls = it.stop_fired ? "hit" : dist != null && dist < 8 ? "near" : "";
+      return `<div class="witem"><div><div><b>${it.name || it.ca.slice(0, 8)}</b> ${fmtM(it.mcap)}</div><div class="sub ${cls}">${sub}</div></div>
         <button data-ca="${it.ca}" data-chain="${it.chain || "solana"}" class="open">open</button><button data-ca="${it.ca}" class="rm">x</button></div>`;
     }).join("");
     $("watchitems").querySelectorAll(".open").forEach((b) => b.addEventListener("click", () => load(b.dataset.ca, b.dataset.chain)));
