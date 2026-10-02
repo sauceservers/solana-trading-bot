@@ -38,7 +38,7 @@ chrome://extensions  ->  Developer mode  ->  Load unpacked  ->  select copilot/e
 Pin "Trading Copilot". Click it to open the side panel.
 ```
 
-Open any token page (pump.fun/coin/…, axiom.trade/meme/…, dexscreener.com/solana/…, gmgn, photon, birdeye, solscan, geckoterminal, bullx, padre, rugcheck). The panel detects the address from the URL, or from the page text if the site hides it, and loads. You can also paste a mint or pool address into the box.
+Open any token page on Axiom, fomo web (fomo.family), DexScreener, pump.fun, GMGN, Photon, Birdeye, Solscan, GeckoTerminal, BullX, Padre or RugCheck. The panel takes the address from the URL when it is there (mint or pool, both resolve), otherwise it scans the page markup: logo URLs, explorer links and visible text. On pages that list several tokens the most frequent one loads and the others show as chips under the status line, one click to switch. You can also paste a mint or pool address into the box.
 
 ## Endpoints (for scripts)
 

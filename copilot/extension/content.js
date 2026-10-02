@@ -33,27 +33,41 @@
       const m = href.match(re);
       if (m && m[1]) return m[1];
     }
-    return null;
+    // Generic: any address-shaped path segment or query value (Axiom, fomo and friends change routes).
+    const g = href.match(new RegExp(`[/=](${B58}|${EVM})(?=[/?&#]|$)`));
+    return g && !SKIP.has(g[1]) ? g[1] : null;
   }
 
-  function fromText() {
-    const text = (document.body && document.body.innerText) || "";
-    const re = new RegExp(`\\b(${B58}|${EVM})\\b`, "g");
+  function tally(counts, a, w) {
+    if (SKIP.has(a)) return;
+    counts.set(a, (counts.get(a) || 0) + w + (a.endsWith("pump") ? 2 : 0));
+  }
+
+  // Terminals that truncate the CA on screen still carry the full mint in logo URLs, explorer links
+  // and framework props, so scan markup too, not just visible text.
+  function fromPage() {
     const counts = new Map();
-    let m;
-    let n = 0;
-    while ((m = re.exec(text)) && n++ < 5000) {
-      const a = m[1];
-      if (SKIP.has(a)) continue;
-      counts.set(a, (counts.get(a) || 0) + (a.endsWith("pump") ? 3 : 1));
+    const re = new RegExp(`(${B58}|${EVM})`, "g");
+    const text = (document.body && document.body.innerText) || "";
+    let m, n = 0;
+    while ((m = re.exec(text)) && n++ < 5000) tally(counts, m[1], 3);
+    for (const a of document.querySelectorAll("a[href]")) {
+      const h = a.getAttribute("href") || "";
+      if (/solscan|dexscreener|pump\.fun|birdeye|rugcheck|geckoterminal|solana\.fm|explorer\.solana/.test(h)) {
+        const mm = h.match(re);
+        if (mm) tally(counts, mm[0], 4);
+      }
     }
+    const html = document.documentElement.outerHTML.slice(0, 2_000_000);
+    n = 0;
+    while ((m = re.exec(html)) && n++ < 20000) tally(counts, m[1], 1);
     return [...counts.entries()].sort((x, y) => y[1] - x[1]).slice(0, 4).map((e) => e[0]);
   }
 
   let last = "";
   function scan() {
     const url = fromUrl(location.href);
-    const cands = url ? [url, ...fromText().filter((c) => c !== url)] : fromText();
+    const cands = url ? [url, ...fromPage().filter((c) => c !== url)] : fromPage();
     const key = cands.join(",");
     if (!cands.length || key === last) return;
     last = key;

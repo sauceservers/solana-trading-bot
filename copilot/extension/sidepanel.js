@@ -1,7 +1,7 @@
 const SERVER = "http://127.0.0.1:8787";
 const $ = (id) => document.getElementById(id);
 
-const state = { ca: null, chain: "solana", tabId: null, timers: [], plan: null, live: null, lastCands: "" };
+const state = { ca: null, chain: "solana", tabId: null, timers: [], plan: null, live: null, lastCands: "", candMap: {} };
 
 const fmtM = (v) => {
   if (v == null || isNaN(v)) return "-";
@@ -42,7 +42,7 @@ async function resolveCandidates(cands) {
   for (const c of cands) {
     try {
       const r = await api(`/resolve?q=${encodeURIComponent(c)}`);
-      if (r.address) return r;
+      if (r.address) { state.candMap[c] = r.address; return r; }
     } catch (_) {
       return null;
     }
@@ -60,8 +60,24 @@ async function pickFromTab() {
   const key = entry.candidates.join(",");
   if (key === state.lastCands) return;
   state.lastCands = key;
+  renderCands(entry.candidates);
   const r = await resolveCandidates(entry.candidates);
   if (r && r.address !== state.ca) load(r.address, r.chain);
+}
+
+// Pages that list many tokens (Axiom sidebars, fomo feeds) can yield several addresses; the
+// most frequent one is loaded automatically and the rest are one click away.
+function renderCands(cands) {
+  $("cands").innerHTML = cands.slice(0, 4).map((c) =>
+    `<button data-c="${c}" title="${c}">${c.slice(0, 4)}…${c.slice(-4)}</button>`).join("");
+  $("cands").querySelectorAll("button").forEach((b) => b.addEventListener("click", async () => {
+    const r = await resolveCandidates([b.dataset.c]);
+    if (r) load(r.address, r.chain); else setStatus("that address is not an indexed token", true);
+  }));
+  markActive();
+}
+function markActive() {
+  $("cands").querySelectorAll("button").forEach((b) => b.classList.toggle("active", (state.candMap[b.dataset.c] || b.dataset.c) === state.ca));
 }
 
 chrome.storage.session.onChanged.addListener((changes) => {
@@ -96,6 +112,7 @@ async function load(ca, chain) {
   $("flags").innerHTML = "";
   badge($("verdict"), "checking…", "blue");
   setStatus(`${ca.slice(0, 6)}…${ca.slice(-4)} on ${state.chain}`);
+  markActive();
   refreshLive();
   refreshRug();
   refreshPlan();

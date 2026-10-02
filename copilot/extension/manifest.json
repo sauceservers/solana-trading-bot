@@ -11,8 +11,11 @@
   "content_scripts": [
     {
       "matches": [
-        "https://pump.fun/*",
         "https://axiom.trade/*",
+        "https://*.axiom.trade/*",
+        "https://fomo.family/*",
+        "https://*.fomo.family/*",
+        "https://pump.fun/*",
         "https://dexscreener.com/*",
         "https://gmgn.ai/*",
         "https://photon-sol.tinyastro.io/*",

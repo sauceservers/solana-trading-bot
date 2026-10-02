@@ -36,7 +36,7 @@ UA = {"User-Agent": "Mozilla/5.0 (copilot)"}
 
 # Wallets that show up on every bot-infested chart. Prefix match is enough for tagging.
 KNOWN_BOTS = {
-    "AgmLJBMD": "arb/MM bot",
+    "AgmLJBMDCqWynYnQiPCuj9ewsNNsBJXyzoUhD9LJzN51": "arb/MM bot",
     "2tgUbS9U": "volume bot",
     "FHpcNSe6": "bump bot",
     "BHREKFkP": "launch sniper",
@@ -128,7 +128,8 @@ def resolve(q):
         return {"address": p["baseToken"]["address"], "chain": "solana", "kind": "pair"}
     # Brand-new pump.fun curve tokens are not on DexScreener yet; confirm it is at least a mint.
     acct = rpc("getAccountInfo", [q, {"encoding": "jsonParsed"}])
-    info = (((acct or {}).get("value") or {}).get("data") or {}).get("parsed", {})
+    data = ((acct or {}).get("value") or {}).get("data")
+    info = data.get("parsed", {}) if isinstance(data, dict) else {}  # wallets come back as [base64, enc]
     if info.get("type") == "mint":
         return {"address": q, "chain": "solana", "kind": "token", "unindexed": True}
     return {"error": "not indexed"}

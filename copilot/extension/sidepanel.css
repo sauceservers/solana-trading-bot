@@ -35,6 +35,9 @@ button { cursor: pointer; }
 button:hover { border-color: var(--blue); }
 button.primary { background: #16325c; border-color: #1e4a8a; }
 button.link { background: none; border: none; color: var(--blue); padding: 0; }
+.chips { margin-top: 4px; gap: 4px; }
+.chips button { padding: 2px 6px; font-size: 10px; font-family: ui-monospace, Menlo, monospace; color: var(--muted); }
+.chips button.active { color: var(--fg); border-color: var(--blue); }
 .card {
   background: var(--card);
   border: 1px solid var(--line);
