@@ -34,9 +34,12 @@ PORT = int(os.environ.get("COPILOT_PORT", "8787"))
 SOL_RPC = os.environ.get("SOL_RPC", "https://api.mainnet-beta.solana.com")
 UA = {"User-Agent": "Mozilla/5.0 (copilot)"}
 
-# Wallets that show up on every bot-infested chart. Prefix match is enough for tagging.
+# Wallets worth naming on the tape. Prefix match is enough for tagging.
+# AgmLJBMD is the fee payer on every trade routed through the fomo app (gasless), so it appears
+# as "tx_from" for thousands of different retail users; it is not a bot and not one trader.
 KNOWN_BOTS = {
-    "AgmLJBMDCqWynYnQiPCuj9ewsNNsBJXyzoUhD9LJzN51": "arb/MM bot",
+    "AgmLJBMDCqWynYnQiPCuj9ewsNNsBJXyzoUhD9LJzN51": "via fomo app (relayer, many users)",
+    "FhVo3mqL8PW5pH5U2CN4XE33DokiyZnUwuGpH2hmHLuM": "Meteora DBC pool authority",
     "2tgUbS9U": "volume bot",
     "FHpcNSe6": "bump bot",
     "BHREKFkP": "launch sniper",
