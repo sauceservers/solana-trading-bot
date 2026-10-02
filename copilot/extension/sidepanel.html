@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Trading Copilot</title>
+  <link rel="stylesheet" href="sidepanel.css" />
+</head>
+<body>
+  <header>
+    <div class="row">
+      <input id="ca" placeholder="paste CA or open a token page" spellcheck="false" />
+      <button id="go" title="load">Go</button>
+    </div>
+    <div id="status" class="muted">connecting to local server…</div>
+  </header>
+
+  <main id="main" class="hidden">
+    <section id="head">
+      <div class="row between">
+        <div>
+          <div id="name" class="name"></div>
+          <div id="meta" class="muted"></div>
+        </div>
+        <div id="verdict" class="badge"></div>
+      </div>
+      <div class="kpis">
+        <div><span class="k">mcap</span><span id="mcap" class="v"></span></div>
+        <div><span class="k">liq</span><span id="liq" class="v"></span></div>
+        <div><span class="k">5m b/s</span><span id="bs" class="v"></span></div>
+        <div><span class="k">tx/min</span><span id="txm" class="v"></span></div>
+        <div><span class="k">1m range</span><span id="rng" class="v"></span></div>
+        <div><span class="k">age</span><span id="age" class="v"></span></div>
+      </div>
+      <canvas id="spark" width="360" height="90"></canvas>
+      <div id="div" class="warn hidden"></div>
+    </section>
+
+    <section id="rug" class="card">
+      <div class="row between">
+        <h2>Rug or dip</h2>
+        <div id="rugv" class="badge"></div>
+      </div>
+      <div id="rugaction" class="action"></div>
+      <ul id="rugev" class="ev"></ul>
+    </section>
+
+    <section id="planc" class="card">
+      <div class="row between">
+        <h2>Plan</h2>
+        <div id="book" class="badge"></div>
+      </div>
+      <div class="row inputs">
+        <label>entry mcap <input id="entry" type="number" step="1000" placeholder="auto" /></label>
+        <label>size SOL <input id="size" type="number" step="0.5" placeholder="0" /></label>
+        <label>SOL $ <input id="solusd" type="number" step="1" value="120" /></label>
+      </div>
+      <div class="kpis">
+        <div><span class="k">last real low</span><span id="low" class="v"></span></div>
+        <div><span class="k">stop</span><span id="stop" class="v red"></span></div>
+        <div><span class="k">max size (10% exit)</span><span id="maxsize" class="v"></span></div>
+        <div><span class="k">your exit impact</span><span id="impact" class="v"></span></div>
+      </div>
+      <ol id="ladder" class="ladder"></ol>
+      <ul id="notes" class="ev"></ul>
+      <div id="handsoff" class="warn hidden"></div>
+      <div class="row">
+        <button id="watch" class="primary">Watch (stop + target alerts)</button>
+        <button id="refreshplan">Recompute</button>
+      </div>
+    </section>
+
+    <section class="card">
+      <h2>Big trades (&gt;$2K)</h2>
+      <table id="trades"></table>
+    </section>
+
+    <section class="card">
+      <div class="row between">
+        <h2>Flags</h2>
+        <button id="togglereport" class="link">full report</button>
+      </div>
+      <ul id="flags" class="ev"></ul>
+      <pre id="report" class="hidden"></pre>
+    </section>
+  </main>
+
+  <section id="watchlist" class="card">
+    <h2>Watchlist</h2>
+    <div id="watchitems" class="muted">nothing watched</div>
+  </section>
+
+  <footer class="muted">Rules: nothing under $250K liq on the main book. Principal out at 2x. Stops are pre-set, never moved down. Under $500K = thesis book, 24h hands off. Not financial advice.</footer>
+  <script src="sidepanel.js"></script>
+</body>
+</html>
