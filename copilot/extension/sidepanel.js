@@ -199,7 +199,7 @@ async function refreshPlan() {
     state.plan = d;
     badge($("book"), `${d.book} book`, d.book === "THESIS" ? "yellow" : "blue");
     $("low").textContent = fmtM(d.last_low_mcap);
-    $("stop").textContent = `${fmtM(d.stop_mcap)} (${d.stop_pct_below?.toFixed(0)}% below)`;
+    $("stop").textContent = `${fmtM(d.stop_mcap)} (${d.stop_pct_below?.toFixed(0)}% below · ${d.stop_buffer_pct?.toFixed(0)}% buffer)`;
     $("maxsize").textContent = fmtM(d.max_size_usd_for_10pct_impact);
     $("impact").textContent = d.exit_impact_pct == null ? "enter size" : `~${d.exit_impact_pct.toFixed(0)}%`;
     $("impact").className = `v ${d.exit_impact_pct > 15 ? "red" : ""}`;
@@ -215,6 +215,10 @@ async function refreshPlan() {
   } catch (_) { /* ignore */ }
 }
 $("refreshplan").addEventListener("click", refreshPlan);
+for (const id of ["entry", "size", "solusd"]) {
+  $(id).addEventListener("change", refreshPlan);
+  $(id).addEventListener("keydown", (e) => { if (e.key === "Enter") refreshPlan(); });
+}
 
 $("watch").addEventListener("click", async () => {
   if (!state.ca || !state.plan) return;

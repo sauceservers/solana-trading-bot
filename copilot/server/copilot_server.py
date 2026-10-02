@@ -272,14 +272,17 @@ def plan(ca, chain, entry_mcap=None, size_sol=None, sol_usd=None):
         return {"error": "no candles", "market": m}
     rng = sorted(100 * (h / l - 1) for _, o, h, l, c, v in ol if l > 0)
     med = rng[len(rng) // 2] if rng else 15.0
+    p75 = rng[int(len(rng) * 0.75)] if rng else med
     # "Last real low": the lowest low since the most recent 1m high, ignoring the still-forming candle.
     done = ol[:-1] if len(ol) > 1 else ol
     hi_i = max(range(len(done)), key=lambda i: done[i][2])
     after = done[hi_i:] or done
     last_low = min(x[3] for x in after[-8:]) * sup
     recent_high = done[hi_i][2] * sup
-    # Stop sits a full median range below the last real low so ordinary wicks cannot take it out.
-    stop = last_low * (1 - min(med, 40) / 100)
+    # Stop buffer: the 75th-percentile 1m range over the last hour, floored at 6%. A token that has
+    # gone quiet for ten minutes still gets a stop sized for the wicks it printed an hour ago.
+    buffer = max(6.0, min(p75, 40.0))
+    stop = last_low * (1 - buffer / 100)
     book = "THESIS" if mcap and mcap < 500_000 else "MAIN"
     entry = entry_mcap or mcap
     ladder = [
@@ -305,7 +308,7 @@ def plan(ca, chain, entry_mcap=None, size_sol=None, sol_usd=None):
         notes.append(f"{m['age_h']*60:.0f} minutes old: no base exists yet, this is a lottery not a setup")
     if book == "THESIS":
         notes.append("under $500K: thesis book rules. No sell button for 24h unless /rug says RUG.")
-    return {"market": m, "book": book, "median_range_pct": med, "last_low_mcap": last_low, "recent_high_mcap": recent_high,
+    return {"market": m, "book": book, "median_range_pct": med, "stop_buffer_pct": buffer, "last_low_mcap": last_low, "recent_high_mcap": recent_high,
             "stop_mcap": stop, "stop_pct_below": 100 * (1 - stop / mcap) if mcap else None, "entry_mcap": entry,
             "ladder": ladder, "max_size_usd_for_10pct_impact": max_size_usd_10pct, "exit_impact_pct": impact,
             "hands_off_until": hands_off_until, "notes": notes, "ts": time.time()}
