@@ -45,6 +45,13 @@ KNOWN_BOTS = {
     "BHREKFkP": "launch sniper",
 }
 
+# Transfer-hook programs that enforce trade rules on-chain. Hooked tokens cap every sell at a
+# fraction of supply (FISH: 0.1% per tx); anything bigger is rejected, which is what Axiom's
+# "sell failed" looks like.
+KNOWN_HOOK_PROGRAMS = {
+    "8uDCgT4KrMNsX6nJzqCFtLansP9AJef4deWWBk4nG9VA": "Hooked launchpad: per-tx sell cap (~0.1% of supply)",
+}
+
 _cache = {}
 _cache_lock = threading.Lock()
 _inflight = {}  # key -> lock, so concurrent panel requests share one slow computation
@@ -372,6 +379,9 @@ def rug_or_dip(ca, chain):
             for k in ("permanentDelegate", "transferHook", "pausableConfig"):
                 if ext.get(k):
                     ev.append({"level": "RED", "text": f"Token-2022 {k} present: transfers are programmable by the authority"}); score += 2
+            hook = ext.get("transferHook")
+            if isinstance(hook, dict) and hook.get("programId") in KNOWN_HOOK_PROGRAMS:
+                ev.append({"level": "RED", "text": f"{KNOWN_HOOK_PROGRAMS[hook['programId']]}: one-click sells on Axiom fail above the cap — exit only via many small custom-amount sells (fomo app routes these)"})
         creator = r.get("creator")
         cbal = (r.get("creatorBalance") or 0) / 10 ** dec
         cpct = 100 * cbal / supply if supply else 0
