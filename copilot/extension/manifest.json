@@ -1,0 +1,36 @@
+{
+  "manifest_version": 3,
+  "name": "Trading Copilot",
+  "version": "0.1.0",
+  "description": "Rug-or-dip, volatility-sized stops, exit ladder and live tape for the token on screen. Talks to the local copilot server.",
+  "permissions": ["sidePanel", "storage", "alarms", "notifications", "tabs"],
+  "host_permissions": ["http://127.0.0.1:8787/*", "http://localhost:8787/*"],
+  "background": { "service_worker": "background.js" },
+  "action": { "default_title": "Trading Copilot" },
+  "side_panel": { "default_path": "sidepanel.html" },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://axiom.trade/*",
+        "https://*.axiom.trade/*",
+        "https://fomo.family/*",
+        "https://*.fomo.family/*",
+        "https://pump.fun/*",
+        "https://dexscreener.com/*",
+        "https://gmgn.ai/*",
+        "https://photon-sol.tinyastro.io/*",
+        "https://birdeye.so/*",
+        "https://solscan.io/*",
+        "https://www.geckoterminal.com/*",
+        "https://neo.bullx.io/*",
+        "https://bullx.io/*",
+        "https://trade.padre.gg/*",
+        "https://jup.ag/*",
+        "https://rugcheck.xyz/*",
+        "https://x.com/*"
+      ],
+      "js": ["content.js"],
+      "run_at": "document_idle"
+    }
+  ]
+}

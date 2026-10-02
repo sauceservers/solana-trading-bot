@@ -77,6 +77,10 @@ EVM_CHAINS = {
     "arbitrum": {"rpc": ["https://arb1.arbitrum.io/rpc", "https://arbitrum-one-rpc.publicnode.com"], "gt": "arbitrum", "goplus": "42161", "bt": 0.25},
 }
 SOL_RPCS = ["https://api.mainnet-beta.solana.com"]
+# Transfer-hook programs that enforce trade rules (sell caps, buy caps, venue locks).
+KNOWN_HOOK_PROGRAMS = {
+    "8uDCgT4KrMNsX6nJzqCFtLansP9AJef4deWWBk4nG9VA": "Hooked launchpad (hookedpad.com) on-chain sell/buy caps",
+}
 
 # --------------------------------------------------------------------------- #
 # HTTP helpers
@@ -247,6 +251,13 @@ def solana_report(addr, flags, full):
     bad_ext = [k for k in ("permanentDelegate", "transferHook", "pausableConfig", "defaultAccountState") if isinstance(ext, dict) and ext.get(k)]
     if bad_ext:
         flags.append(("RED", f"Token-2022 control extensions present: {bad_ext}"))
+    hook = ext.get("transferHook") if isinstance(ext, dict) else None
+    if isinstance(hook, dict) and hook.get("programId"):
+        hp = hook["programId"]
+        label = KNOWN_HOOK_PROGRAMS.get(hp)
+        print(f"transfer hook program {hp}  authority {hook.get('authority')}  {label or ''}")
+        if label:
+            flags.append(("RED", f"{label} — sells above the per-tx cap are rejected on-chain; Axiom/Photon one-click sells will fail, exit needs many small custom-amount sells"))
     if meta.get("mutable"):
         flags.append(("YELLOW", "metadata mutable"))
     for rk in r.get("risks", []):

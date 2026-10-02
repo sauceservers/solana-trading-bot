@@ -137,3 +137,6 @@ pnpm-lock.yaml
 
 # Visual Studio Code 
 *.code-workspace
+
+# trading copilot local state
+copilot/server/data/
